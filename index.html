@@ -1,0 +1,1076 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>InsydeH2O Setup Utility - Acer Aspire E1</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    width: 100%; height: 100%;
+    background: #000;
+    font-family: 'Share Tech Mono', 'Courier New', monospace;
+    overflow: hidden;
+    user-select: none;
+  }
+
+  #bios-screen {
+    width: 100vw; height: 100vh;
+    background: #000080;
+    color: #c0c0c0;
+    display: flex;
+    flex-direction: column;
+    font-size: clamp(11px, 1.2vw, 14px);
+    position: relative;
+  }
+
+  /* ── TOP BAR ── */
+  #top-bar {
+    background: #000080;
+    color: #c0c0c0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 2px 8px;
+    border-bottom: 1px solid #c0c0c0;
+    flex-shrink: 0;
+  }
+  #top-bar .title { color: #ffffff; font-weight: bold; letter-spacing: 1px; }
+  #top-bar .version { color: #ffff00; }
+
+  /* ── MENU TABS ── */
+  #tab-bar {
+    background: #000080;
+    display: flex;
+    gap: 0;
+    padding: 2px 0 0 0;
+    border-bottom: 2px solid #c0c0c0;
+    flex-shrink: 0;
+  }
+  .tab {
+    padding: 2px 18px;
+    color: #c0c0c0;
+    cursor: default;
+    border-right: 1px solid #555;
+    position: relative;
+  }
+  .tab.active {
+    background: #c0c0c0;
+    color: #000080;
+    font-weight: bold;
+  }
+  .tab:first-child { border-left: 1px solid #555; }
+
+  /* ── LANG TOGGLE ── */
+  #lang-toggle {
+    margin-left: auto;
+    padding: 1px 10px;
+    background: #008080;
+    color: #ffffff;
+    border: 1px solid #00ffff;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: inherit;
+  }
+  #lang-toggle:hover { background: #00aaaa; }
+
+  /* ── MAIN CONTENT AREA ── */
+  #content-area {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── LEFT PANEL ── */
+  #left-panel {
+    flex: 1;
+    padding: 8px 12px;
+    overflow-y: auto;
+    border-right: 1px solid #555;
+  }
+  #left-panel::-webkit-scrollbar { width: 6px; }
+  #left-panel::-webkit-scrollbar-thumb { background: #555; }
+
+  /* ── RIGHT PANEL (Help) ── */
+  #right-panel {
+    width: 28%;
+    padding: 8px 10px;
+    color: #c0c0c0;
+    font-size: 0.9em;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  #right-panel .panel-title {
+    background: #008080;
+    color: #ffffff;
+    padding: 2px 6px;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  #help-text {
+    color: #c0c0c0;
+    line-height: 1.5;
+    flex: 1;
+  }
+  #key-legend {
+    border-top: 1px solid #555;
+    padding-top: 6px;
+    font-size: 0.85em;
+    color: #aaaaaa;
+  }
+  #key-legend div { margin: 2px 0; }
+  #key-legend span.key {
+    background: #333;
+    color: #fff;
+    padding: 0 4px;
+    border: 1px solid #aaa;
+    border-radius: 2px;
+    font-size: 0.9em;
+  }
+
+  /* ── ROWS ── */
+  .bios-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 3px 6px;
+    border: 2px solid transparent;
+    line-height: 1.4;
+    min-height: 22px;
+    align-items: center;
+  }
+  .bios-row.focused {
+    border: 2px solid #ff0000;
+    background: rgba(255,0,0,0.08);
+  }
+  .bios-row.readonly { color: #aaaaaa; }
+  .bios-row .label { flex: 1; }
+  .bios-row .value {
+    color: #00ffff;
+    min-width: 120px;
+    text-align: right;
+  }
+  .bios-row .value.locked { color: #777; }
+  .bios-row .value.warning { color: #ffff00; }
+  .bios-row.section-header {
+    color: #ffff00;
+    font-weight: bold;
+    border-bottom: 1px solid #555;
+    padding-top: 8px;
+    cursor: default;
+  }
+  .bios-row.disabled-row { opacity: 0.4; pointer-events: none; }
+
+  /* ── BOOT ORDER ── */
+  .boot-item {
+    display: flex;
+    padding: 2px 6px;
+    border: 2px solid transparent;
+    align-items: center;
+    color: #00ffff;
+  }
+  .boot-item.focused { border: 2px solid #ff0000; background: rgba(255,0,0,0.08); }
+  .boot-item .boot-num { color: #ffff00; margin-right: 8px; min-width: 20px; }
+  .boot-item .boot-name { flex: 1; }
+
+  /* ── BOTTOM BAR ── */
+  #bottom-bar {
+    background: #000050;
+    border-top: 1px solid #c0c0c0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0;
+    padding: 2px 0;
+    flex-shrink: 0;
+  }
+  .bottom-key {
+    display: flex;
+    align-items: center;
+    padding: 1px 10px;
+    border-right: 1px solid #444;
+    font-size: 0.85em;
+  }
+  .bottom-key .k {
+    background: #333;
+    color: #fff;
+    padding: 0 5px;
+    border: 1px solid #888;
+    border-radius: 2px;
+    margin-right: 4px;
+    font-size: 0.9em;
+  }
+  .bottom-key .desc { color: #c0c0c0; }
+
+  /* ── MODAL OVERLAY ── */
+  #modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 100;
+    justify-content: center;
+    align-items: center;
+  }
+  #modal-overlay.active { display: flex; }
+  #modal-box {
+    background: #000080;
+    border: 2px solid #c0c0c0;
+    padding: 16px 24px;
+    min-width: 300px;
+    max-width: 420px;
+    color: #c0c0c0;
+  }
+  #modal-box .modal-title {
+    background: #008080;
+    color: #fff;
+    text-align: center;
+    padding: 3px 8px;
+    margin: -16px -24px 12px;
+    font-weight: bold;
+    letter-spacing: 1px;
+  }
+  #modal-box input[type=password], #modal-box input[type=text] {
+    background: #000;
+    border: 1px solid #c0c0c0;
+    color: #00ff00;
+    font-family: inherit;
+    font-size: 1em;
+    width: 100%;
+    padding: 4px 6px;
+    margin: 6px 0;
+    outline: none;
+  }
+  #modal-box .modal-btns {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 12px;
+  }
+  #modal-box button {
+    background: #333;
+    color: #fff;
+    border: 1px solid #888;
+    font-family: inherit;
+    font-size: 1em;
+    padding: 3px 16px;
+    cursor: pointer;
+  }
+  #modal-box button:hover { background: #555; }
+  #modal-msg { color: #ff5555; min-height: 18px; font-size: 0.9em; margin-top: 4px; text-align: center; }
+
+  /* ── EXIT CONFIRM ── */
+  #exit-confirm { display: none; }
+  #exit-confirm.active { display: block; }
+
+  /* ── TOAST ── */
+  #toast {
+    position: fixed;
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #008080;
+    color: #fff;
+    border: 1px solid #00ffff;
+    padding: 6px 20px;
+    font-family: inherit;
+    font-size: 1em;
+    z-index: 200;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<div id="bios-screen" tabindex="0">
+
+  <!-- TOP BAR -->
+  <div id="top-bar">
+    <span class="title">InsydeH2O Setup Utility</span>
+    <span style="flex:1"></span>
+    <span class="version">Rev. 3.7</span>
+  </div>
+
+  <!-- TAB BAR -->
+  <div id="tab-bar">
+    <div class="tab" data-tab="0" id="tab-0">Information</div>
+    <div class="tab active" data-tab="1" id="tab-1">Main</div>
+    <div class="tab" data-tab="2" id="tab-2">Security</div>
+    <div class="tab" data-tab="3" id="tab-3">Boot</div>
+    <div class="tab" data-tab="4" id="tab-4">Exit</div>
+    <button id="lang-toggle" onclick="toggleLang()">ES/EN</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div id="content-area">
+    <div id="left-panel"></div>
+    <div id="right-panel">
+      <div class="panel-title" id="help-title">Item Specific Help</div>
+      <div id="help-text"></div>
+      <div id="key-legend"></div>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottom-bar" id="bottom-bar-el"></div>
+</div>
+
+<!-- MODAL -->
+<div id="modal-overlay">
+  <div id="modal-box">
+    <div class="modal-title" id="modal-title">Set Password</div>
+    <div id="modal-body"></div>
+    <div id="modal-msg"></div>
+    <div class="modal-btns">
+      <button id="modal-ok">OK</button>
+      <button id="modal-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+//  BIOS STATE
+// ═══════════════════════════════════════════════════════════════
+const state = {
+  lang: 'en',
+  currentTab: 1,
+  focusIndex: 0,
+  supervisorPassword: '',
+  userPassword: '',
+  hddPassword: '',
+  // MAIN
+  systemTime: getTimeStr(),
+  systemDate: getDateStr(),
+  quietBoot: 'Enabled',
+  networkBoot: 'Disabled',
+  f12BootMenu: 'Disabled',
+  d2dRecovery: 'Enabled',
+  sataMode: 'AHCI',
+  xhciSupport: 'Enabled',
+  // SECURITY
+  passwordOnBoot: 'Disabled',
+  // BOOT
+  bootMode: 'UEFI',
+  secureBoot: 'Disabled',
+  bootOrder: ['HDD/SSD', 'USB HDD', 'ATAPI CDROM', 'Network Boot'],
+  // EXIT — no persistent state, all actions
+};
+
+function getTimeStr() {
+  const n = new Date();
+  return `[${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}:${String(n.getSeconds()).padStart(2,'0')}]`;
+}
+function getDateStr() {
+  const n = new Date();
+  return `[${String(n.getMonth()+1).padStart(2,'0')}/${String(n.getDate()).padStart(2,'0')}/${n.getFullYear()}]`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TRANSLATIONS
+// ═══════════════════════════════════════════════════════════════
+const T = {
+  en: {
+    tabs: ['Information','Main','Security','Boot','Exit'],
+    helpTitle: 'Item Specific Help',
+    // INFO
+    infoTitle: 'System Information',
+    cpuType: 'CPU Type',
+    cpuSpeed: 'CPU Speed',
+    hddModel: 'HDD Model Name',
+    hddSerial: 'HDD Serial Number',
+    atapiModel: 'ATAPI Model Name',
+    bioVersion: 'System BIOS Version',
+    vgaBios: 'VGA BIOS Version',
+    assetTag: 'Asset Tag Number',
+    serialNum: 'Serial Number',
+    uuid: 'UUID',
+    totalMem: 'Total Memory',
+    videoMem: 'Video Memory',
+    // MAIN
+    mainTitle: 'Main',
+    systemTime: 'System Time',
+    systemDate: 'System Date',
+    quietBoot: 'Quiet Boot',
+    networkBoot: 'Network Boot',
+    f12Boot: 'F12 Boot Menu',
+    d2d: 'D2D Recovery',
+    sata: 'SATA Mode',
+    xhci: 'xHCI Support',
+    // SECURITY
+    secTitle: 'Security',
+    supPwd: 'Set Supervisor Password',
+    usrPwd: 'Set User Password',
+    hddPwd: 'Set HDD Password',
+    pwdBoot: 'Password on Boot',
+    notSet: '[Not Installed]',
+    installed: '[Installed]',
+    // BOOT
+    bootTitle: 'Boot',
+    bootMode: 'Boot Mode',
+    secureBoot: 'Secure Boot',
+    bootPriority: 'Boot Priority Order',
+    bootHint: 'Use F5/F6 to change priority',
+    // EXIT
+    exitTitle: 'Exit',
+    exitSave: 'Exit Saving Changes',
+    exitDiscard: 'Exit Discarding Changes',
+    loadDefault: 'Load Setup Defaults',
+    discardChg: 'Discard Changes',
+    saveChg: 'Save Changes',
+    // HELP texts
+    help: {
+      systemTime: 'Use [+] or [-] to change time field. Format: HH:MM:SS',
+      systemDate: 'Use [+] or [-] to change date. Format: MM/DD/YYYY',
+      quietBoot: 'Enabled: Shows Acer logo on POST.\nDisabled: Shows full POST diagnostic text.',
+      networkBoot: 'Enable to boot from network via PXE protocol.',
+      f12Boot: 'If Enabled, press F12 at startup to select boot device without entering BIOS.',
+      d2d: 'Enables Alt+F10 recovery from Acer hidden partition.',
+      sata: 'AHCI: Recommended for Windows 8/10/11.\nIDE: Legacy mode. WARNING: Changing after OS install causes BSOD.',
+      xhci: 'USB 3.0 controller support.',
+      supPwd: 'Master BIOS password. Required to unlock Secure Boot option.',
+      usrPwd: 'Standard user password for BIOS access.',
+      hddPwd: 'Locks the hard drive at hardware level.',
+      pwdBoot: 'If enabled, prompts for password before loading OS.',
+      bootMode: 'UEFI: Required for Win 10/11, GPT partitions.\nLegacy: For Win 7, MBR partitions.',
+      secureBoot: 'Prevents unsigned bootloaders from loading. Requires Supervisor Password to be set.',
+      bootPriority: 'Press F5 to move item DOWN, F6 to move item UP in boot priority.',
+      exitSave: 'Save all changes and restart the system.',
+      exitDiscard: 'Exit without saving any changes.',
+      loadDefault: 'Restore all BIOS settings to factory defaults.',
+      discardChg: 'Undo changes made in this session without exiting.',
+      saveChg: 'Save current changes but remain in BIOS.',
+      cpuType: 'Displays the detected CPU model.',
+      hddModel: 'Confirms if the HDD is physically recognized.',
+      uuid: 'Unique identifier for warranty and asset tracking.',
+    },
+    // BOTTOM BAR
+    bottom: [
+      ['F1','Help'],['↑↓','Select Item'],['F5/F6','Change Values'],
+      ['←→','Select Menu'],['Enter','Select Sub-Menu'],['F9','Setup Defaults'],['F10','Save and Exit'],
+      ['Esc','Exit']
+    ],
+    // TOAST
+    toastSaved: 'Changes saved.',
+    toastDefault: 'Defaults loaded.',
+    toastDiscarded: 'Changes discarded.',
+    toastExitSave: 'Saving changes and restarting...',
+    toastExitDiscard: 'Exiting without saving...',
+    // MODAL
+    modalSetPwd: 'Set Password',
+    modalEnterNew: 'Enter New Password:',
+    modalConfirm: 'Confirm Password:',
+    modalMismatch: 'Passwords do not match!',
+    modalCleared: 'Password cleared.',
+    modalSet: 'Password set successfully.',
+    modalSecureNeedsPwd: 'Supervisor Password required to change Secure Boot!',
+    secureBootLocked: 'Set Supervisor Password first to enable Secure Boot.',
+  },
+  es: {
+    tabs: ['Información','Principal','Seguridad','Arranque','Salir'],
+    helpTitle: 'Ayuda del Elemento',
+    infoTitle: 'Información del Sistema',
+    cpuType: 'Tipo de CPU',
+    cpuSpeed: 'Velocidad de CPU',
+    hddModel: 'Modelo de Disco Duro',
+    hddSerial: 'Número de Serie del HDD',
+    atapiModel: 'Modelo ATAPI',
+    bioVersion: 'Versión del BIOS',
+    vgaBios: 'Versión VGA BIOS',
+    assetTag: 'Número de Inventario',
+    serialNum: 'Número de Serie',
+    uuid: 'UUID',
+    totalMem: 'Memoria Total',
+    videoMem: 'Memoria de Video',
+    mainTitle: 'Principal',
+    systemTime: 'Hora del Sistema',
+    systemDate: 'Fecha del Sistema',
+    quietBoot: 'Arranque Silencioso',
+    networkBoot: 'Arranque de Red',
+    f12Boot: 'Menú de Arranque F12',
+    d2d: 'Recuperación D2D',
+    sata: 'Modo SATA',
+    xhci: 'Soporte xHCI',
+    secTitle: 'Seguridad',
+    supPwd: 'Contraseña de Supervisor',
+    usrPwd: 'Contraseña de Usuario',
+    hddPwd: 'Contraseña del HDD',
+    pwdBoot: 'Contraseña al Iniciar',
+    notSet: '[No Configurada]',
+    installed: '[Configurada]',
+    bootTitle: 'Arranque',
+    bootMode: 'Modo de Arranque',
+    secureBoot: 'Arranque Seguro',
+    bootPriority: 'Orden de Prioridad de Arranque',
+    bootHint: 'Use F5/F6 para cambiar prioridad',
+    exitTitle: 'Salir',
+    exitSave: 'Salir Guardando Cambios',
+    exitDiscard: 'Salir Sin Guardar',
+    loadDefault: 'Cargar Valores Predeterminados',
+    discardChg: 'Descartar Cambios',
+    saveChg: 'Guardar Cambios',
+    help: {
+      systemTime: 'Use [+] o [-] para cambiar campo de hora. Formato: HH:MM:SS',
+      systemDate: 'Use [+] o [-] para cambiar la fecha. Formato: MM/DD/AAAA',
+      quietBoot: 'Habilitado: Muestra el logo de Acer en el POST.\nDeshabilitado: Muestra el texto de diagnóstico completo.',
+      networkBoot: 'Activa el arranque desde la red mediante PXE.',
+      f12Boot: 'Si está habilitado, presione F12 al encender para elegir dispositivo de arranque.',
+      d2d: 'Activa la recuperación con Alt+F10 desde la partición oculta de Acer.',
+      sata: 'AHCI: Recomendado para Windows 8/10/11.\nIDE: Modo legado. ¡ADVERTENCIA: Cambiar después de instalar Windows causa pantalla azul!',
+      xhci: 'Soporte del controlador USB 3.0.',
+      supPwd: 'Contraseña maestra del BIOS. Requerida para desbloquear el Arranque Seguro.',
+      usrPwd: 'Contraseña de usuario estándar para acceso al BIOS.',
+      hddPwd: 'Bloquea el disco duro a nivel de hardware.',
+      pwdBoot: 'Si está habilitado, solicita contraseña antes de cargar el sistema operativo.',
+      bootMode: 'UEFI: Necesario para Win 10/11, particiones GPT.\nLegado: Para Win 7, particiones MBR.',
+      secureBoot: 'Evita que carguen cargadores de arranque no firmados. Requiere Contraseña de Supervisor.',
+      bootPriority: 'Presione F5 para mover el elemento ABAJO, F6 para moverlo ARRIBA en el orden de arranque.',
+      exitSave: 'Guardar todos los cambios y reiniciar el sistema.',
+      exitDiscard: 'Salir sin guardar ningún cambio.',
+      loadDefault: 'Restaurar todos los ajustes del BIOS a valores de fábrica.',
+      discardChg: 'Deshacer cambios de esta sesión sin salir.',
+      saveChg: 'Guardar cambios actuales pero permanecer en el BIOS.',
+      cpuType: 'Muestra el modelo de CPU detectado.',
+      hddModel: 'Confirma si el disco duro es reconocido físicamente.',
+      uuid: 'Identificador único para garantía y seguimiento de activos.',
+    },
+    bottom: [
+      ['F1','Ayuda'],['↑↓','Seleccionar'],['F5/F6','Cambiar Valores'],
+      ['←→','Cambiar Menú'],['Enter','Submenú'],['F9','Predeterminados'],['F10','Guardar y Salir'],
+      ['Esc','Salir']
+    ],
+    toastSaved: 'Cambios guardados.',
+    toastDefault: 'Valores predeterminados cargados.',
+    toastDiscarded: 'Cambios descartados.',
+    toastExitSave: 'Guardando y reiniciando...',
+    toastExitDiscard: 'Saliendo sin guardar...',
+    modalSetPwd: 'Establecer Contraseña',
+    modalEnterNew: 'Nueva Contraseña:',
+    modalConfirm: 'Confirmar Contraseña:',
+    modalMismatch: '¡Las contraseñas no coinciden!',
+    modalCleared: 'Contraseña eliminada.',
+    modalSet: 'Contraseña establecida correctamente.',
+    modalSecureNeedsPwd: '¡Se requiere Contraseña de Supervisor para cambiar Arranque Seguro!',
+    secureBootLocked: 'Configure primero la Contraseña de Supervisor para habilitar el Arranque Seguro.',
+  }
+};
+
+function t(key) { return T[state.lang][key] || T['en'][key] || key; }
+function th(key) { return (T[state.lang].help||{})[key] || (T['en'].help||{})[key] || ''; }
+
+// ═══════════════════════════════════════════════════════════════
+//  HARDWARE DATA (read-only)
+// ═══════════════════════════════════════════════════════════════
+const hw = {
+  cpuType: 'Intel(R) Core(TM) i3-3110M CPU',
+  cpuSpeed: '2400 MHz',
+  hddModel: 'ST500LT012-1DG142',
+  hddSerial: 'W0VJTDXT',
+  atapiModel: 'HL-DT-ST DVDRAM GT50N',
+  biosVersion: 'V2.04',
+  vgaBios: 'Intel GOP 2.0.1024',
+  assetTag: 'NXSH4AL00123456789',
+  serial: 'NXSH4AL001234',
+  uuid: '43A73B00-E8C4-11E2-B4FB-{B870F4E75B8E}',
+  totalMem: '4096 MB',
+  videoMem: '128 MB',
+};
+
+// ═══════════════════════════════════════════════════════════════
+//  TAB DEFINITIONS — each tab returns an array of "row defs"
+// ═══════════════════════════════════════════════════════════════
+function getTabRows(tabIdx) {
+  const l = state.lang;
+  switch(tabIdx) {
+    case 0: return getInfoRows();
+    case 1: return getMainRows();
+    case 2: return getSecurityRows();
+    case 3: return getBootRows();
+    case 4: return getExitRows();
+  }
+  return [];
+}
+
+function getInfoRows() {
+  return [
+    {type:'header', label: t('infoTitle')},
+    {type:'ro', id:'cpuType',   label:t('cpuType'),   value:hw.cpuType,   help:'cpuType'},
+    {type:'ro', id:'cpuSpeed',  label:t('cpuSpeed'),  value:hw.cpuSpeed,  help:'cpuType'},
+    {type:'ro', id:'hddModel',  label:t('hddModel'),  value:hw.hddModel,  help:'hddModel'},
+    {type:'ro', id:'hddSerial', label:t('hddSerial'), value:hw.hddSerial, help:'hddModel'},
+    {type:'ro', id:'atapiModel',label:t('atapiModel'),value:hw.atapiModel,help:'hddModel'},
+    {type:'ro', id:'biosVer',   label:t('bioVersion'),value:hw.biosVersion,help:'cpuType'},
+    {type:'ro', id:'vgaBios',   label:t('vgaBios'),   value:hw.vgaBios,   help:'cpuType'},
+    {type:'ro', id:'assetTag',  label:t('assetTag'),  value:hw.assetTag,  help:'uuid'},
+    {type:'ro', id:'serial',    label:t('serialNum'), value:hw.serial,    help:'uuid'},
+    {type:'ro', id:'uuid',      label:t('uuid'),      value:hw.uuid,      help:'uuid'},
+    {type:'ro', id:'totalMem',  label:t('totalMem'),  value:hw.totalMem,  help:'cpuType'},
+    {type:'ro', id:'videoMem',  label:t('videoMem'),  value:hw.videoMem,  help:'cpuType'},
+  ];
+}
+
+function getMainRows() {
+  return [
+    {type:'header', label: t('mainTitle')},
+    {type:'time',   id:'sysTime', label:t('systemTime'), value:state.systemTime, help:'systemTime'},
+    {type:'date',   id:'sysDate', label:t('systemDate'), value:state.systemDate, help:'systemDate'},
+    {type:'ro',     id:'totalMem2',label:t('totalMem'), value:hw.totalMem, help:'cpuType'},
+    {type:'ro',     id:'vidMem2',  label:t('videoMem'), value:hw.videoMem, help:'cpuType'},
+    {type:'toggle', id:'quietBoot',  label:t('quietBoot'),  stateKey:'quietBoot',  opts:['Enabled','Disabled'], help:'quietBoot'},
+    {type:'toggle', id:'netBoot',    label:t('networkBoot'),stateKey:'networkBoot',opts:['Enabled','Disabled'], help:'networkBoot'},
+    {type:'toggle', id:'f12Boot',    label:t('f12Boot'),    stateKey:'f12BootMenu',opts:['Enabled','Disabled'], help:'f12Boot'},
+    {type:'toggle', id:'d2d',        label:t('d2d'),        stateKey:'d2dRecovery',opts:['Enabled','Disabled'], help:'d2d'},
+    {type:'toggle', id:'sataMode',   label:t('sata'),       stateKey:'sataMode',   opts:['AHCI','IDE'],         help:'sata', warn:'sataMode'},
+    {type:'toggle', id:'xhci',       label:t('xhci'),       stateKey:'xhciSupport',opts:['Enabled','Disabled'], help:'xhci'},
+  ];
+}
+
+function getSecurityRows() {
+  return [
+    {type:'header', label: t('secTitle')},
+    {type:'pwd',  id:'supPwd',  label:t('supPwd'),  pwdKey:'supervisorPassword', help:'supPwd'},
+    {type:'pwd',  id:'usrPwd',  label:t('usrPwd'),  pwdKey:'userPassword',       help:'usrPwd'},
+    {type:'pwd',  id:'hddPwd',  label:t('hddPwd'),  pwdKey:'hddPassword',        help:'hddPwd'},
+    {type:'toggle',id:'pwdBoot',label:t('pwdBoot'), stateKey:'passwordOnBoot', opts:['Enabled','Disabled'], help:'pwdBoot'},
+  ];
+}
+
+function getBootRows() {
+  const rows = [
+    {type:'header', label: t('bootTitle')},
+    {type:'toggle', id:'bootMode',   label:t('bootMode'),   stateKey:'bootMode',   opts:['UEFI','Legacy'], help:'bootMode'},
+    {type:'secureBootRow'},
+    {type:'header', label: t('bootPriority')},
+  ];
+  state.bootOrder.forEach((name, i) => {
+    rows.push({type:'bootItem', id:'boot'+i, label:name, index:i});
+  });
+  rows.push({type:'hint', label: t('bootHint')});
+  return rows;
+}
+
+function getExitRows() {
+  return [
+    {type:'header', label: t('exitTitle')},
+    {type:'action', id:'exitSave',    label:t('exitSave'),    action:'exitSave',    help:'exitSave'},
+    {type:'action', id:'exitDiscard', label:t('exitDiscard'), action:'exitDiscard', help:'exitDiscard'},
+    {type:'action', id:'loadDefault', label:t('loadDefault'), action:'loadDefault', help:'loadDefault'},
+    {type:'action', id:'discardChg',  label:t('discardChg'),  action:'discardChg',  help:'discardChg'},
+    {type:'action', id:'saveChg',     label:t('saveChg'),     action:'saveChg',     help:'saveChg'},
+  ];
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  RENDER
+// ═══════════════════════════════════════════════════════════════
+let focusableRows = []; // indices of focusable rows in current render
+
+function render() {
+  // Update time
+  state.systemTime = getTimeStr();
+  state.systemDate = getDateStr();
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.textContent = t('tabs')[i];
+    el.classList.toggle('active', i === state.currentTab);
+  });
+
+  // Rows
+  const panel = document.getElementById('left-panel');
+  panel.innerHTML = '';
+  focusableRows = [];
+  const rows = getTabRows(state.currentTab);
+
+  rows.forEach((row, ri) => {
+    if (row.type === 'header') {
+      const el = document.createElement('div');
+      el.className = 'bios-row section-header';
+      el.textContent = row.label;
+      panel.appendChild(el);
+      return;
+    }
+    if (row.type === 'hint') {
+      const el = document.createElement('div');
+      el.className = 'bios-row readonly';
+      el.style.color = '#888';
+      el.style.fontSize = '0.85em';
+      el.innerHTML = `<span>${row.label}</span>`;
+      panel.appendChild(el);
+      return;
+    }
+
+    const el = document.createElement('div');
+    const focIdx = focusableRows.length;
+    focusableRows.push(ri);
+    el.className = 'bios-row' + (state.focusIndex === focIdx ? ' focused' : '');
+    el.dataset.focIdx = focIdx;
+
+    if (row.type === 'ro') {
+      el.classList.add('readonly');
+      el.innerHTML = `<span class="label">${row.label}</span><span class="value">${row.value}</span>`;
+    } else if (row.type === 'time' || row.type === 'date') {
+      el.innerHTML = `<span class="label">${row.label}</span><span class="value">${state.systemTime}</span>`;
+    } else if (row.type === 'toggle') {
+      const val = state[row.stateKey];
+      const isWarn = row.warn === 'sataMode' && val === 'IDE';
+      el.innerHTML = `<span class="label">${row.label}</span><span class="value${isWarn?' warning':''}">[${val}]</span>`;
+    } else if (row.type === 'pwd') {
+      const set = state[row.pwdKey] !== '';
+      const lbl = set ? t('installed') : t('notSet');
+      el.innerHTML = `<span class="label">${row.label}</span><span class="value ${set?'':'locked'}">${lbl}</span>`;
+    } else if (row.type === 'secureBootRow') {
+      const locked = state.supervisorPassword === '';
+      el.classList.toggle('disabled-row', locked);
+      const val = state.secureBoot;
+      el.innerHTML = `<span class="label">${t('secureBoot')} ${locked?'<span style="color:#f55">['+( state.lang==='es'?'Bloqueado':'Locked')+']</span>':''}</span><span class="value ${locked?'locked':''}">[${val}]</span>`;
+    } else if (row.type === 'bootItem') {
+      el.classList.add('boot-item');
+      el.innerHTML = `<span class="boot-num">${row.index+1}.</span><span class="boot-name">${row.label}</span>`;
+    } else if (row.type === 'action') {
+      el.innerHTML = `<span class="label">${row.label}</span>`;
+    }
+
+    panel.appendChild(el);
+  });
+
+  // Clamp focusIndex
+  if (state.focusIndex >= focusableRows.length) state.focusIndex = 0;
+
+  // Help text
+  renderHelp(rows, state.focusIndex);
+
+  // Bottom bar
+  renderBottomBar();
+}
+
+function renderHelp(rows, fi) {
+  const rowIdx = focusableRows[fi];
+  if (rowIdx === undefined) { document.getElementById('help-text').textContent = ''; return; }
+  const row = rows[rowIdx];
+  if (!row) return;
+  document.getElementById('help-title').textContent = t('helpTitle');
+  let helpKey = row.help || '';
+  if (row.type === 'secureBootRow') helpKey = 'secureBoot';
+  if (row.type === 'bootItem') helpKey = 'bootPriority';
+  document.getElementById('help-text').style.whiteSpace = 'pre-wrap';
+  document.getElementById('help-text').textContent = th(helpKey) || '';
+
+  // key legend
+  const kl = document.getElementById('key-legend');
+  kl.innerHTML = '';
+  const addKey = (k, desc) => {
+    const d = document.createElement('div');
+    d.innerHTML = `<span class="key">${k}</span> ${desc}`;
+    kl.appendChild(d);
+  };
+  addKey('↑↓', state.lang==='es'?'Mover selección':'Move selection');
+  addKey('←→', state.lang==='es'?'Cambiar pestaña':'Change tab');
+  if (row.type === 'bootItem') {
+    addKey('F5', state.lang==='es'?'Bajar prioridad':'Move down');
+    addKey('F6', state.lang==='es'?'Subir prioridad':'Move up');
+  } else if (row.type === 'toggle' || row.type === 'secureBootRow') {
+    addKey('+/-', state.lang==='es'?'Cambiar valor':'Change value');
+    addKey('Enter', state.lang==='es'?'Cambiar valor':'Change value');
+  } else if (row.type === 'pwd') {
+    addKey('Enter', state.lang==='es'?'Establecer contraseña':'Set password');
+  } else if (row.type === 'action') {
+    addKey('Enter', state.lang==='es'?'Ejecutar':'Execute');
+  }
+  addKey('F9', state.lang==='es'?'Predeterminados':'Setup Defaults');
+  addKey('F10', state.lang==='es'?'Guardar y Salir':'Save and Exit');
+}
+
+function renderBottomBar() {
+  const bar = document.getElementById('bottom-bar');
+  bar.innerHTML = '';
+  t('bottom').forEach(([k, desc]) => {
+    const el = document.createElement('div');
+    el.className = 'bottom-key';
+    el.innerHTML = `<span class="k">${k}</span><span class="desc">${desc}</span>`;
+    bar.appendChild(el);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  KEYBOARD HANDLING
+// ═══════════════════════════════════════════════════════════════
+document.getElementById('bios-screen').addEventListener('keydown', e => {
+  // Prevent default for all BIOS keys
+  const biasKeys = ['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter','F1','F5','F6','F9','F10','F11','F12','Escape','+','-'];
+  if (biasKeys.includes(e.key)) e.preventDefault();
+
+  if (modalActive) { handleModalKey(e); return; }
+
+  const rows = getTabRows(state.currentTab);
+  const focIdx = state.focusIndex;
+  const rowIdx = focusableRows[focIdx];
+  const row = rowIdx !== undefined ? rows[rowIdx] : null;
+
+  switch(e.key) {
+    case 'ArrowDown':
+      if (state.focusIndex < focusableRows.length - 1) state.focusIndex++;
+      break;
+    case 'ArrowUp':
+      if (state.focusIndex > 0) state.focusIndex--;
+      break;
+    case 'ArrowRight':
+      if (state.currentTab < 4) { state.currentTab++; state.focusIndex = 0; }
+      break;
+    case 'ArrowLeft':
+      if (state.currentTab > 0) { state.currentTab--; state.focusIndex = 0; }
+      break;
+    case 'Enter':
+    case '+':
+    case '-':
+      if (row) handleRowActivate(row, e.key);
+      break;
+    case 'F5':
+      if (row && row.type === 'bootItem') moveBootItem(row.index, 1);
+      else if (row && (row.type === 'toggle')) cycleToggle(row, -1);
+      break;
+    case 'F6':
+      if (row && row.type === 'bootItem') moveBootItem(row.index, -1);
+      else if (row && (row.type === 'toggle')) cycleToggle(row, 1);
+      break;
+    case 'F9':
+      loadDefaults();
+      break;
+    case 'F10':
+      performExitSave();
+      break;
+    case 'Escape':
+      performExitDiscard();
+      break;
+    case 'F11':
+      // Let browser handle fullscreen natively via JS
+      toggleFullscreen();
+      return;
+  }
+  render();
+});
+
+function handleRowActivate(row, key) {
+  if (row.type === 'toggle') {
+    if (row.id === 'secureBootRow' || row.type === 'secureBootRow') return; // handled below
+    cycleToggle(row, key === '-' ? -1 : 1);
+  } else if (row.type === 'secureBootRow') {
+    if (state.supervisorPassword === '') {
+      showToast(t('modalSecureNeedsPwd'));
+    } else {
+      cycleToggleByKey('secureBoot', ['Enabled','Disabled'], 1);
+    }
+  } else if (row.type === 'pwd') {
+    openPasswordModal(row.pwdKey);
+  } else if (row.type === 'action') {
+    performAction(row.action);
+  }
+}
+
+// Handle secureBootRow special case in render
+document.getElementById('left-panel').addEventListener = () => {}; // placeholder
+
+// Override row activate for secureBootRow
+const _origHandleRowActivate = handleRowActivate;
+function handleRowActivate(row, key) {
+  if (!row) return;
+  if (row.type === 'secureBootRow') {
+    if (state.supervisorPassword === '') {
+      showToast(t('modalSecureNeedsPwd'));
+    } else {
+      cycleToggleByKey('secureBoot', ['Enabled','Disabled'], key === '-' ? -1 : 1);
+    }
+  } else if (row.type === 'toggle') {
+    cycleToggle(row, key === '-' ? -1 : 1);
+  } else if (row.type === 'pwd') {
+    openPasswordModal(row.pwdKey);
+  } else if (row.type === 'action') {
+    performAction(row.action);
+  }
+}
+
+function cycleToggle(row, dir) {
+  const opts = row.opts;
+  const cur = state[row.stateKey];
+  const idx = opts.indexOf(cur);
+  const newIdx = (idx + dir + opts.length) % opts.length;
+  state[row.stateKey] = opts[newIdx];
+  // If SATA mode changed to IDE, warn
+  if (row.stateKey === 'sataMode' && state.sataMode === 'IDE') {
+    showToast('WARNING: Changing SATA to IDE may cause BSOD!');
+  }
+}
+
+function cycleToggleByKey(key, opts, dir) {
+  const cur = state[key];
+  const idx = opts.indexOf(cur);
+  state[key] = opts[(idx + dir + opts.length) % opts.length];
+}
+
+function moveBootItem(index, dir) {
+  const newIndex = index + dir;
+  if (newIndex < 0 || newIndex >= state.bootOrder.length) return;
+  const arr = state.bootOrder;
+  [arr[index], arr[newIndex]] = [arr[newIndex], arr[index]];
+  // Update focusIndex to follow the item
+  state.focusIndex += dir;
+}
+
+function performAction(action) {
+  switch(action) {
+    case 'exitSave': performExitSave(); break;
+    case 'exitDiscard': performExitDiscard(); break;
+    case 'loadDefault': loadDefaults(); break;
+    case 'discardChg': showToast(t('toastDiscarded')); break;
+    case 'saveChg': showToast(t('toastSaved')); break;
+  }
+}
+
+function performExitSave() {
+  showToast(t('toastExitSave'));
+}
+function performExitDiscard() {
+  showToast(t('toastExitDiscard'));
+}
+function loadDefaults() {
+  state.quietBoot = 'Enabled';
+  state.networkBoot = 'Disabled';
+  state.f12BootMenu = 'Disabled';
+  state.d2dRecovery = 'Enabled';
+  state.sataMode = 'AHCI';
+  state.xhciSupport = 'Enabled';
+  state.passwordOnBoot = 'Disabled';
+  state.bootMode = 'UEFI';
+  state.secureBoot = 'Disabled';
+  state.bootOrder = ['HDD/SSD', 'USB HDD', 'ATAPI CDROM', 'Network Boot'];
+  showToast(t('toastDefault'));
+  render();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  PASSWORD MODAL
+// ═══════════════════════════════════════════════════════════════
+let modalActive = false;
+let modalTarget = null;
+
+function openPasswordModal(pwdKey) {
+  modalTarget = pwdKey;
+  const overlay = document.getElementById('modal-overlay');
+  const title = document.getElementById('modal-title');
+  const body = document.getElementById('modal-body');
+  const msg = document.getElementById('modal-msg');
+
+  title.textContent = t('modalSetPwd');
+  msg.textContent = '';
+
+  body.innerHTML = `
+    <div>${t('modalEnterNew')}</div>
+    <input type="password" id="pwd-new" autocomplete="off" maxlength="20" />
+    <div>${t('modalConfirm')}</div>
+    <input type="password" id="pwd-confirm" autocomplete="off" maxlength="20" />
+    <div style="color:#888;font-size:0.85em;margin-top:6px">${state.lang==='es'?'Dejar en blanco para eliminar la contraseña.':'Leave blank to clear the password.'}</div>
+  `;
+
+  overlay.classList.add('active');
+  modalActive = true;
+  setTimeout(() => document.getElementById('pwd-new')?.focus(), 50);
+
+  document.getElementById('modal-ok').onclick = confirmPasswordModal;
+  document.getElementById('modal-cancel').onclick = closeModal;
+}
+
+function confirmPasswordModal() {
+  const n = document.getElementById('pwd-new')?.value || '';
+  const c = document.getElementById('pwd-confirm')?.value || '';
+  const msg = document.getElementById('modal-msg');
+  if (n !== c) { msg.textContent = t('modalMismatch'); return; }
+  state[modalTarget] = n;
+  // If supervisor pwd cleared, also disable secure boot
+  if (modalTarget === 'supervisorPassword' && n === '') {
+    state.secureBoot = 'Disabled';
+  }
+  showToast(n === '' ? t('modalCleared') : t('modalSet'));
+  closeModal();
+  render();
+}
+
+function closeModal() {
+  document.getElementById('modal-overlay').classList.remove('active');
+  document.getElementById('modal-msg').textContent = '';
+  modalActive = false;
+  document.getElementById('bios-screen').focus();
+}
+
+function handleModalKey(e) {
+  if (e.key === 'Escape') { e.preventDefault(); closeModal(); }
+  if (e.key === 'Enter') { e.preventDefault(); confirmPasswordModal(); }
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════════════════════
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  LANG TOGGLE
+// ═══════════════════════════════════════════════════════════════
+function toggleLang() {
+  state.lang = state.lang === 'en' ? 'es' : 'en';
+  render();
+  document.getElementById('bios-screen').focus();
+}
+
+// ═══════════════════════════════════════════════════════════════
+//  FULLSCREEN
+// ═══════════════════════════════════════════════════════════════
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen().catch(()=>{});
+  } else {
+    document.exitFullscreen().catch(()=>{});
+  }
+}
+
+// Auto-focus & auto-fullscreen attempt
+window.onload = () => {
+  document.getElementById('bios-screen').focus();
+  render();
+  // Time tick
+  setInterval(() => {
+    state.systemTime = getTimeStr();
+    const el = document.querySelector('.bios-row .value');
+    if (el && document.querySelector('[data-foc-idx]')) render();
+  }, 1000);
+};
+
+// Tab clicks
+document.querySelectorAll('.tab').forEach(el => {
+  el.addEventListener('click', () => {
+    state.currentTab = parseInt(el.dataset.tab);
+    state.focusIndex = 0;
+    render();
+    document.getElementById('bios-screen').focus();
+  });
+});
+
+// F11 on window level
+window.addEventListener('keydown', e => {
+  if (e.key === 'F11') { e.preventDefault(); toggleFullscreen(); }
+});
+</script>
+</body>
+</html>
